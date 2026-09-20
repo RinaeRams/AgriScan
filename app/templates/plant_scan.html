@@ -1794,11 +1794,16 @@
         fileInput.addEventListener('change', function(e) {
             if (e.target.files.length > 0) {
                 handleFile(e.target.files[0]);
+                e.target.value = '';
             }
         });
 
-        // Also trigger file input when clicking the upload zone or button
+        // Also trigger file input when clicking or touching the upload zone
         uploadZone.addEventListener('click', function() {
+            fileInput.click();
+        });
+        uploadZone.addEventListener('touchend', function(e) {
+            e.preventDefault();
             fileInput.click();
         });
 
@@ -1812,23 +1817,21 @@
             }
 
             selectedFile = file;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                previewImg.src = e.target.result;
-                uploadZone.style.display = 'none';
-                fileInfo.style.display = 'flex';
-                previewSection.style.display = 'block';
-                hideError();
-                setStep(2);
+            hideError();
 
-                // Display file info
-                fileNameEl.textContent = file.name;
-                fileSizeEl.textContent = formatFileSize(file.size);
+            const previewImgUrl = URL.createObjectURL(file);
+            previewImg.onload = function() {
+                URL.revokeObjectURL(previewImgUrl);
             };
-            reader.onerror = function() {
-                showError('Failed to read the selected image. Please try again.');
-            };
-            reader.readAsDataURL(file);
+            previewImg.src = previewImgUrl;
+
+            uploadZone.style.display = 'none';
+            fileInfo.style.display = 'flex';
+            previewSection.style.display = 'block';
+            setStep(2);
+
+            fileNameEl.textContent = file.name;
+            fileSizeEl.textContent = formatFileSize(file.size);
         }
 
         function resetScanner() {
