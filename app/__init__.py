@@ -220,10 +220,10 @@ def create_app():
         if file.filename == '':
             return jsonify({'success': False, 'error': 'No image selected'}), 400
 
-        allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp'}
+        allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif', '.tiff'}
         file_ext = os.path.splitext(file.filename)[1].lower()
         if file_ext not in allowed_extensions:
-            return jsonify({'success': False, 'error': 'Invalid file type. Please upload JPG, PNG, or WebP images.'}), 400
+            return jsonify({'success': False, 'error': 'Invalid file type. Please upload JPG, PNG, WebP, BMP, GIF, or TIFF images.'}), 400
 
         try:
             from PIL import Image

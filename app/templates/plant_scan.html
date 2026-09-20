@@ -1803,8 +1803,11 @@
         });
 
         function handleFile(file) {
-            if (!file.type.startsWith('image/')) {
-                showError('Please select a valid image file.');
+            const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.heic', '.heif'];
+            const fileExt = file.name ? '.' + file.name.split('.').pop().toLowerCase() : '';
+
+            if (!file.type.startsWith('image/') && !allowedExtensions.includes(fileExt)) {
+                showError('Please select a valid image file (JPG, PNG, WebP, etc.).');
                 return;
             }
 
@@ -1821,6 +1824,9 @@
                 // Display file info
                 fileNameEl.textContent = file.name;
                 fileSizeEl.textContent = formatFileSize(file.size);
+            };
+            reader.onerror = function() {
+                showError('Failed to read the selected image. Please try again.');
             };
             reader.readAsDataURL(file);
         }
