@@ -68,8 +68,13 @@ def create_app():
         return password
 
     def check_password(password, hashed):
+        if not hashed:
+            return False
         if bcrypt:
-            return bcrypt.check_password_hash(hashed, password)
+            try:
+                return bcrypt.check_password_hash(hashed, password)
+            except Exception:
+                return password == hashed
         return password == hashed
 
     def log_action(action, details=None, user_id=None):
@@ -81,6 +86,27 @@ def create_app():
                 'user_email': session.get('user_email'),
                 'user_role': session.get('user_role')
             })
+
+    @app.errorhandler(400)
+    def bad_request(error):
+        return jsonify({'success': False, 'error': 'Bad request', 'message': 'Bad request'}), 400
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({'success': False, 'error': 'Not found', 'message': 'Resource not found'}), 404
+
+    @app.errorhandler(405)
+    def method_not_allowed(error):
+        return jsonify({'success': False, 'error': 'Method not allowed', 'message': 'Method not allowed'}), 405
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        return jsonify({'success': False, 'error': 'Internal server error', 'message': 'An internal error occurred'}), 500
+
+    @app.errorhandler(Exception)
+    def handle_exception(error):
+        app.logger.error(f"Unhandled exception: {error}")
+        return jsonify({'success': False, 'error': 'Internal server error', 'message': 'An internal error occurred'}), 500
 
     @app.route('/')
     def index():
@@ -100,7 +126,7 @@ def create_app():
 
     @app.route('/login', methods=['POST'])
     def login_post():
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
 
@@ -126,7 +152,7 @@ def create_app():
 
     @app.route('/register', methods=['POST'])
     def register_post():
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
 
         required_fields = ['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'phone', 'location']
         for field in required_fields:
@@ -327,7 +353,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         required_fields = ['firstName', 'lastName', 'email', 'password', 'role']
         for field in required_fields:
             if not data.get(field):
@@ -358,7 +384,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         allowed_fields = ['firstName', 'lastName', 'phone', 'location', 'farmSize', 'role']
         if 'password' in data and data['password']:
             data['password'] = hash_password(data['password'])
@@ -396,7 +422,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         if not data.get('name'):
             return jsonify({'success': False, 'message': 'Disease name is required'}), 400
 
@@ -411,7 +437,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         if mongo_service.update_disease(disease_id, data):
             log_action('update_disease', f"Updated disease: {disease_id}", session.get('user_id'))
             return jsonify({'success': True})
