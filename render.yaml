@@ -2,6 +2,7 @@ services:
   - type: web
     name: agriscan-app
     runtime: python3
+    runtimeVersion: "3.12"
     buildCommand: pip install -r requirements.txt
     startCommand: python run.py
     envVars:
