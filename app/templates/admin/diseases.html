@@ -1,0 +1,182 @@
+{% extends 'admin/base.html' %}
+{% block title %}Diseases - AgriScan Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-bug me-2"></i>Disease Database</h1>
+    <button class="btn btn-custom" onclick="showAddDiseaseModal()">
+        <i class="fas fa-plus me-2"></i>Add Disease
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Affected Crops</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="diseasesTable">
+                    <tr><td colspan="4" class="text-center">Loading diseases...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="diseaseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="diseaseModalTitle">Add Disease</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="diseaseForm">
+                    <input type="hidden" id="diseaseId">
+                    <div class="mb-3">
+                        <label class="form-label">Disease Name</label>
+                        <input type="text" class="form-control" id="diseaseName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Affected Crops</label>
+                        <input type="text" class="form-control" id="diseaseCrops" placeholder="e.g. Tomato, Maize, Cassava">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="diseaseDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Recommendations</label>
+                        <textarea class="form-control" id="diseaseRecommendations" rows="4" placeholder="One recommendation per line"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-custom" onclick="saveDisease()">Save Disease</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allDiseases = [];
+
+function loadDiseases() {
+    fetch('/admin/api/diseases')
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success) {
+                document.getElementById('diseasesTable').innerHTML = '<tr><td colspan="4" class="text-center text-danger">Failed to load diseases</td></tr>';
+                return;
+            }
+            allDiseases = res.diseases || [];
+            renderDiseases(allDiseases);
+        })
+        .catch(err => {
+            console.error('Diseases error:', err);
+            document.getElementById('diseasesTable').innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error loading diseases</td></tr>';
+        });
+}
+
+function renderDiseases(diseases) {
+    if (diseases.length === 0) {
+        document.getElementById('diseasesTable').innerHTML = '<tr><td colspan="4" class="text-center">No diseases found</td></tr>';
+        return;
+    }
+    const html = diseases.map(d => `
+        <tr>
+            <td><strong>${d.name || 'N/A'}</strong></td>
+            <td>${d.affectedCrops || d.crops || 'N/A'}</td>
+            <td>${(d.description || '').substring(0, 120)}${(d.description || '').length > 120 ? '...' : ''}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="editDisease('${d.id}')">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteDisease('${d.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    document.getElementById('diseasesTable').innerHTML = html;
+}
+
+function showAddDiseaseModal() {
+    document.getElementById('diseaseModalTitle').textContent = 'Add Disease';
+    document.getElementById('diseaseId').value = '';
+    document.getElementById('diseaseForm').reset();
+    new bootstrap.Modal(document.getElementById('diseaseModal')).show();
+}
+
+function editDisease(diseaseId) {
+    const disease = allDiseases.find(d => d.id === diseaseId);
+    if (!disease) return;
+
+    document.getElementById('diseaseModalTitle').textContent = 'Edit Disease';
+    document.getElementById('diseaseId').value = disease.id;
+    document.getElementById('diseaseName').value = disease.name || '';
+    document.getElementById('diseaseCrops').value = disease.affectedCrops || disease.crops || '';
+    document.getElementById('diseaseDescription').value = disease.description || '';
+    document.getElementById('diseaseRecommendations').value = Array.isArray(disease.recommendations) ? disease.recommendations.join('\n') : (disease.recommendations || '');
+    new bootstrap.Modal(document.getElementById('diseaseModal')).show();
+}
+
+function saveDisease() {
+    const diseaseId = document.getElementById('diseaseId').value;
+    const recommendations = document.getElementById('diseaseRecommendations').value.split('\n').filter(r => r.trim());
+    const data = {
+        name: document.getElementById('diseaseName').value,
+        affectedCrops: document.getElementById('diseaseCrops').value,
+        description: document.getElementById('diseaseDescription').value,
+        recommendations: recommendations
+    };
+
+    if (!data.name) {
+        alert('Disease name is required');
+        return;
+    }
+
+    const method = diseaseId ? 'PUT' : 'POST';
+    const url = diseaseId ? `/admin/api/diseases/${diseaseId}` : '/admin/api/diseases';
+
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            bootstrap.Modal.getInstance(document.getElementById('diseaseModal')).hide();
+            loadDiseases();
+        } else {
+            alert(res.message || 'Failed to save disease');
+        }
+    });
+}
+
+function deleteDisease(diseaseId) {
+    if (!confirm('Are you sure you want to delete this disease?')) return;
+    fetch(`/admin/api/diseases/${diseaseId}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                loadDiseases();
+            } else {
+                alert('Failed to delete disease');
+            }
+        });
+}
+
+document.addEventListener('DOMContentLoaded', loadDiseases);
+</script>
+{% endblock %}

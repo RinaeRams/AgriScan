@@ -1,0 +1,264 @@
+{% extends 'admin/base.html' %}
+{% block title %}Dashboard - AgriScan Admin{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats Row -->
+<div class="stats-row">
+    <div class="stat-card primary">
+        <div class="stat-card-body">
+            <div class="stat-info">
+                <h3 id="totalScans">--</h3>
+                <p>Total Scans</p>
+            </div>
+            <div class="stat-icon">
+                <i class="fas fa-microscope"></i>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card success">
+        <div class="stat-card-body">
+            <div class="stat-info">
+                <h3 id="totalUsersStat">--</h3>
+                <p>Total Users</p>
+            </div>
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card info">
+        <div class="stat-card-body">
+            <div class="stat-info">
+                <h3 id="totalLogs">--</h3>
+                <p>System Logs</p>
+            </div>
+            <div class="stat-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card warning">
+        <div class="stat-card-body">
+            <div class="stat-info">
+                <h3 id="avgConfidence">--</h3>
+                <p>Avg Confidence</p>
+            </div>
+            <div class="stat-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Scans & Top Diseases -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5><i class="fas fa-chart-bar"></i>Recent Scans</h5>
+                <a href="{{ url_for('admin_scans') }}" class="header-btn header-btn-primary" style="padding: 8px 16px; font-size: 0.85rem;">
+                    <i class="fas fa-arrow-right"></i>
+                    View All
+                </a>
+            </div>
+            <div class="content-card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Disease</th>
+                                <th>Confidence</th>
+                                <th>User</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentScansTable">
+                            <tr><td colspan="4" class="text-center py-5">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5><i class="fas fa-bug"></i>Top Diseases</h5>
+            </div>
+            <div class="content-card-body">
+                <canvas id="diseaseChart" height="260"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Users & Activity -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5><i class="fas fa-users"></i>Recent Users</h5>
+                <a href="{{ url_for('admin_users') }}" class="header-btn header-btn-primary" style="padding: 8px 16px; font-size: 0.85rem;">
+                    <i class="fas fa-arrow-right"></i>
+                    View All
+                </a>
+            </div>
+            <div class="content-card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentUsersTable">
+                            <tr><td colspan="3" class="text-center py-5">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="content-card">
+            <div class="content-card-header">
+                <h5><i class="fas fa-clipboard-list"></i>Recent Activity</h5>
+                <a href="{{ url_for('admin_logs') }}" class="header-btn header-btn-primary" style="padding: 8px 16px; font-size: 0.85rem;">
+                    <i class="fas fa-arrow-right"></i>
+                    View All
+                </a>
+            </div>
+            <div class="content-card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Action</th>
+                                <th>User</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentLogsTable">
+                            <tr><td colspan="3" class="text-center py-5">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/admin/api/analytics')
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success) return;
+            const data = res.data;
+
+            // Update stats with animation
+            animateValue('totalScans', 0, data.total_scans || 0, 800);
+            animateValue('totalUsersStat', 0, data.total_users || 0, 800);
+            animateValue('totalLogs', 0, data.total_logs || 0, 800);
+
+            const recentScans = data.recent_scans || [];
+            if (recentScans.length > 0) {
+                const avg = recentScans.reduce((sum, s) => sum + (parseFloat(s.confidence) || 0), 0) / recentScans.length;
+                document.getElementById('avgConfidence').textContent = avg.toFixed(1) + '%';
+            } else {
+                document.getElementById('avgConfidence').textContent = '0%';
+            }
+
+            // Recent scans table
+            const scansHtml = recentScans.map(s => `
+                <tr>
+                    <td><strong>${s.disease || 'N/A'}</strong></td>
+                    <td>
+                        <span class="badge bg-${parseFloat(s.confidence) >= 80 ? 'success' : parseFloat(s.confidence) >= 50 ? 'warning' : 'danger'}">
+                            ${s.confidence ? parseFloat(s.confidence).toFixed(1) + '%' : 'N/A'}
+                        </span>
+                    </td>
+                    <td>${s.user_id || 'N/A'}</td>
+                    <td>${s.timestamp ? new Date(s.timestamp).toLocaleString() : 'N/A'}</td>
+                </tr>
+            `).join('');
+            document.getElementById('recentScansTable').innerHTML = scansHtml || '<tr><td colspan="4" class="text-center py-5">No scans yet</td></tr>';
+
+            // Recent users table
+            const usersHtml = (data.recent_users || []).map(u => `
+                <tr>
+                    <td><strong>${u.firstName || ''} ${u.lastName || ''}</strong></td>
+                    <td>${u.email || ''}</td>
+                    <td><span class="badge bg-${u.role === 'admin' ? 'primary' : 'secondary'}">${u.role || 'user'}</span></td>
+                </tr>
+            `).join('');
+            document.getElementById('recentUsersTable').innerHTML = usersHtml || '<tr><td colspan="3" class="text-center py-5">No users yet</td></tr>';
+
+            // Recent logs table
+            const logsHtml = (data.recent_logs || []).map(l => `
+                <tr>
+                    <td><strong>${l.action || ''}</strong></td>
+                    <td>${l.user_email || 'system'}</td>
+                    <td>${l.timestamp ? new Date(l.timestamp).toLocaleString() : 'N/A'}</td>
+                </tr>
+            `).join('');
+            document.getElementById('recentLogsTable').innerHTML = logsHtml || '<tr><td colspan="3" class="text-center py-5">No logs yet</td></tr>';
+
+            // Disease chart
+            const diseaseCounts = data.disease_counts || {};
+            const labels = Object.keys(diseaseCounts).slice(0, 6);
+            const values = Object.values(diseaseCounts).slice(0, 6);
+
+            if (labels.length > 0) {
+                new Chart(document.getElementById('diseaseChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: [
+                                'rgb(255, 99, 132)',
+                                'rgb(54, 162, 235)',
+                                'rgb(255, 205, 86)',
+                                'rgb(75, 192, 192)',
+                                'rgb(153, 102, 255)',
+                                'rgb(255, 159, 64)'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { padding: 15, usePointStyle: true } }
+                        }
+                    }
+                });
+            }
+        })
+        .catch(err => console.error('Analytics error:', err));
+});
+
+function animateValue(id, start, end, duration) {
+    const obj = document.getElementById(id);
+    if (!obj) return;
+
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const value = Math.floor(progress * (end - start) + start);
+        obj.textContent = value;
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+</script>
+{% endblock %}

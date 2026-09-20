@@ -1,0 +1,116 @@
+{% extends 'admin/base.html' %}
+{% block title %}Scans - AgriScan Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-microscope me-2"></i>Plant Scans</h1>
+    <button class="btn btn-outline-secondary" onclick="window.location.reload()">
+        <i class="fas fa-sync-alt me-2"></i>Refresh
+    </button>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" id="diseaseFilter" placeholder="Filter by disease...">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-custom w-100" onclick="loadScans()">
+                    <i class="fas fa-search me-2"></i>Filter
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary w-100" onclick="clearFilter()">Clear</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Disease</th>
+                        <th>Confidence</th>
+                        <th>Filename</th>
+                        <th>User ID</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="scansTable">
+                    <tr><td colspan="6" class="text-center">Loading scans...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentDiseaseFilter = '';
+
+function loadScans() {
+    currentDiseaseFilter = document.getElementById('diseaseFilter').value;
+    const url = currentDiseaseFilter ? `/admin/api/scans?disease=${encodeURIComponent(currentDiseaseFilter)}` : '/admin/api/scans';
+
+    fetch(url)
+        .then(r => r.json())
+        .then(res => {
+            if (!res.success) {
+                document.getElementById('scansTable').innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load scans</td></tr>';
+                return;
+            }
+            const scans = res.scans || [];
+            if (scans.length === 0) {
+                document.getElementById('scansTable').innerHTML = '<tr><td colspan="6" class="text-center">No scans found</td></tr>';
+                return;
+            }
+            const html = scans.map(s => `
+                <tr>
+                    <td><strong>${s.disease || 'N/A'}</strong></td>
+                    <td>${s.confidence ? parseFloat(s.confidence).toFixed(1) + '%' : 'N/A'}</td>
+                    <td>${s.filename || 'N/A'}</td>
+                    <td>${s.user_id || 'N/A'}</td>
+                    <td>${s.timestamp ? new Date(s.timestamp).toLocaleString() : 'N/A'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteScan('${s.scan_id || s.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            document.getElementById('scansTable').innerHTML = html;
+        })
+        .catch(err => {
+            console.error('Scans error:', err);
+            document.getElementById('scansTable').innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error loading scans</td></tr>';
+        });
+}
+
+function clearFilter() {
+    document.getElementById('diseaseFilter').value = '';
+    currentDiseaseFilter = '';
+    loadScans();
+}
+
+function deleteScan(scanId) {
+    if (!confirm('Are you sure you want to delete this scan?')) return;
+    fetch(`/admin/api/scans/${scanId}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                loadScans();
+            } else {
+                alert('Failed to delete scan');
+            }
+        });
+}
+
+document.addEventListener('DOMContentLoaded', loadScans);
+</script>
+{% endblock %}

@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriScan - AI Plant Disease Detection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --primary-dark: #1b5e20;
+            --accent: #4CAF50;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .site-header {
+            background: rgba(255, 255, 255, 0.98);
+            border-bottom: 1px solid rgba(27, 94, 32, 0.12);
+            padding: 14px 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        .brand-mark {
+            align-items: center;
+            color: var(--primary-dark);
+            display: inline-flex;
+            font-size: 1.25rem;
+            font-weight: 800;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .brand-mark:hover {
+            color: var(--primary);
+        }
+
+        .brand-icon {
+            align-items: center;
+            background: var(--primary);
+            border-radius: 10px;
+            color: white;
+            display: inline-flex;
+            height: 38px;
+            justify-content: center;
+            width: 38px;
+        }
+
+        .header-welcome {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .header-welcome strong {
+            color: #212529;
+        }
+
+        .header-action {
+            align-items: center;
+            border-radius: 8px;
+            display: inline-flex;
+            font-weight: 600;
+            gap: 8px;
+            padding: 9px 15px;
+            text-decoration: none;
+        }
+
+        .header-action.primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .header-action.primary:hover {
+            background: var(--primary-dark);
+            color: white;
+        }
+
+        .header-action.logout {
+            color: #6c757d;
+        }
+
+        .header-action.logout:hover {
+            background: #f1f8f2;
+            color: var(--primary-dark);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+            color: white;
+            padding: 120px 0 100px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/></svg>');
+            background-size: 100px 100px;
+            opacity: 0.5;
+        }
+
+        .hero-section .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-img {
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 6px solid rgba(255,255,255,0.15);
+            animation: float 6s ease-in-out infinite;
+            max-width: 100%;
+            height: auto;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 12px;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+        }
+
+        .btn-custom {
+            background: linear-gradient(45deg, #2e7d32, #1b5e20);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            padding: 12px 28px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-custom:hover {
+            background: linear-gradient(45deg, #1b5e20, #2e7d32);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
+        }
+
+        .btn-outline-custom {
+            border: 2px solid white;
+            color: white;
+            border-radius: 8px;
+            padding: 12px 28px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-custom:hover {
+            background: white;
+            color: #1b5e20;
+            transform: translateY(-2px);
+        }
+
+        .stats-section {
+            background: #f8f9fa;
+            padding: 60px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .stat-item:nth-child(1) { animation-delay: 0.1s; }
+        .stat-item:nth-child(2) { animation-delay: 0.2s; }
+        .stat-item:nth-child(3) { animation-delay: 0.3s; }
+        .stat-item:nth-child(4) { animation-delay: 0.4s; }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2e7d32;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .how-it-works {
+            padding: 80px 0;
+        }
+
+        .step-card {
+            text-align: center;
+            padding: 30px 20px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .step-card:nth-child(1) { animation-delay: 0.2s; }
+        .step-card:nth-child(2) { animation-delay: 0.4s; }
+        .step-card:nth-child(3) { animation-delay: 0.6s; }
+
+        .step-card:hover {
+            background: #f8f9fa;
+            transform: translateY(-5px);
+        }
+
+        .step-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2e7d32, #1b5e20);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .step-card:hover .step-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .crops-section {
+            background: #f8f9fa;
+            padding: 80px 0;
+        }
+
+        .crop-badge {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 6px;
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            font-weight: 500;
+            color: #2e7d32;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .crop-badge:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(46, 125, 50, 0.25);
+            background: #2e7d32;
+            color: white;
+        }
+
+        .testimonials-section {
+            padding: 80px 0;
+            background: white;
+        }
+
+        .testimonial-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            height: 100%;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .testimonial-card:nth-child(1) { animation-delay: 0.2s; }
+        .testimonial-card:nth-child(2) { animation-delay: 0.4s; }
+        .testimonial-card:nth-child(3) { animation-delay: 0.6s; }
+
+        .testimonial-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .testimonial-text {
+            font-style: italic;
+            color: #495057;
+        }
+
+        .cta-section {
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .cta-section .btn-custom {
+            background: white;
+            color: #1b5e20;
+            font-size: 1.1rem;
+            padding: 16px 36px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-section .btn-custom:hover {
+            background: #f8f9fa;
+            color: #1b5e20;
+        }
+
+        footer {
+            background: #1b5e20;
+            color: white;
+            padding: 40px 0 20px;
+        }
+
+        footer a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        footer a:hover {
+            color: white;
+            padding-left: 5px;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .site-header {
+                padding: 12px 0;
+            }
+
+            .header-welcome {
+                display: none;
+            }
+
+            .header-action {
+                padding: 8px 10px;
+            }
+
+            .hero-section {
+                padding: 100px 0 60px;
+            }
+
+            .hero-section h1 {
+                font-size: 2rem;
+            }
+        }
+
+        .hero-section {
+            background: linear-gradient(105deg, rgba(27, 94, 32, 0.98) 0%, rgba(27, 94, 32, 0.92) 44%, rgba(27, 94, 32, 0.5) 100%), url("{{ url_for('static', filename='img/agriscan.png') }}") center / cover;
+            min-height: 620px;
+            padding: 88px 0 104px;
+        }
+
+        .hero-section::before {
+            background: radial-gradient(circle at 82% 50%, rgba(129, 199, 132, 0.24), transparent 24%), repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0, rgba(255, 255, 255, 0.035) 1px, transparent 1px, transparent 12px);
+            background-size: auto, 18px 18px;
+            opacity: 0.55;
+        }
+
+        .hero-section .row {
+            min-height: 420px;
+        }
+
+        .hero-section h1 {
+            font-size: clamp(2.8rem, 5vw, 5.3rem);
+            letter-spacing: -0.055em;
+            line-height: 0.98;
+            max-width: 650px;
+        }
+
+        .hero-section .lead {
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 1.08rem !important;
+            line-height: 1.75;
+            max-width: 570px;
+        }
+
+        .hero-section .btn-light {
+            background: #fff;
+            border: 0;
+            border-radius: 9px;
+            color: #1b5e20;
+            font-weight: 700;
+            padding: 14px 22px;
+        }
+
+        .hero-section .btn-light:hover {
+            background: #e8f5e9;
+            color: #1b5e20;
+            transform: translateY(-2px);
+        }
+
+        .hero-section .btn-outline-custom {
+            border-color: rgba(255, 255, 255, 0.55);
+            border-radius: 9px;
+            font-weight: 700;
+            padding: 12px 22px;
+        }
+
+        .hero-img {
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 18px;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+            max-height: 360px;
+            object-fit: cover;
+            width: min(100%, 520px);
+        }
+
+        @media (max-width: 768px) {
+            .hero-section {
+                min-height: auto;
+                padding: 70px 0 80px;
+            }
+
+            .hero-section .row {
+                min-height: auto;
+            }
+
+            .hero-section h1 {
+                font-size: 3rem;
+            }
+
+            .hero-img {
+                margin-top: 36px;
+                max-height: 270px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container d-flex align-items-center justify-content-between gap-3">
+            <a class="brand-mark" href="{{ url_for('index') }}" aria-label="AgriScan home">
+                <span class="brand-icon"><i class="fas fa-leaf"></i></span>
+                <span>AgriScan</span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <span class="header-welcome">Welcome, <strong>{{ session.user_name or 'Farmer' }}</strong></span>
+                <a class="header-action primary" href="{{ url_for('plant_scan') }}">
+                    <i class="fas fa-camera"></i><span>Scan Plant</span>
+                </a>
+                <a class="header-action logout" href="{{ url_for('logout') }}" aria-label="Log out">
+                    <i class="fas fa-right-from-bracket"></i><span class="d-none d-sm-inline">Logout</span>
+                </a>
+            </div>
+        </div>
+    </header>
+    <section class="hero-section">
+        <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-lg-6">
+                        <h1 class="display-3 fw-bold mb-4">Detect Crop Diseases Instantly</h1>
+                        <p class="lead mb-4" style="font-size: 1.25rem; opacity: 0.95;">
+                            AgriScan uses advanced AI to identify plant diseases from photos. 
+                            Get instant, accurate diagnoses and treatment recommendations — 
+                            no agricultural expertise required.
+                        </p>
+                        <div class="d-flex gap-3 flex-wrap">
+                            {% if session.user_role != 'admin' %}
+                            <a href="/plant-scan" class="btn btn-light btn-lg">
+                                <i class="fas fa-camera me-2"></i>Start Scanning
+                            </a>
+                            {% endif %}
+                            <a href="#how-it-works" class="btn btn-outline-custom btn-lg">
+                                Learn More
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 text-center">
+                        <img src="{{ url_for('static', filename='img/agriscan.png') }}" 
+                             alt="AgriScan Plant Disease Detection" 
+                             class="hero-img"
+                             style="max-width: 100%; height: auto;">
+                    </div>
+                </div>
+        </div>
+    </section>
+
+        <section class="stats-section">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-3 stat-item">
+                        <div class="stat-number">20+</div>
+                        <div class="stat-label">Disease Types Detected</div>
+                    </div>
+                    <div class="col-md-3 stat-item">
+                        <div class="stat-number">5+</div>
+                        <div class="stat-label">Crop Types Supported</div>
+                    </div>
+                    <div class="col-md-3 stat-item">
+                        <div class="stat-number">95%</div>
+                        <div class="stat-label">AI Accuracy Rate</div>
+                    </div>
+                    <div class="col-md-3 stat-item">
+                        <div class="stat-number">&lt;30s</div>
+                        <div class="stat-label">Average Diagnosis Time</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="how-it-works" id="how-it-works">
+            <div class="container">
+                <div class="row text-center mb-5">
+                    <div class="col">
+                        <h2 class="display-5 fw-bold text-success">How It Works</h2>
+                        <p class="lead text-muted">Three simple steps to diagnose your plant</p>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="step-card">
+                            <div class="step-icon">
+                                <i class="fas fa-camera"></i>
+                            </div>
+                            <h4>1. Upload Image</h4>
+                            <p class="text-muted">Take a clear photo of the affected plant leaf or crop using your phone or camera.</p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="step-card">
+                            <div class="step-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <h4>2. AI Analysis</h4>
+                            <p class="text-muted">Our MobileNetV2 deep learning model analyzes the image to detect diseases and assess severity.</p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="step-card">
+                            <div class="step-icon">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <h4>3. Get Results</h4>
+                            <p class="text-muted">Receive instant diagnosis with disease identification, confidence score, and treatment recommendations.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="crops-section" id="crops">
+            <div class="container">
+                <div class="row text-center mb-5">
+                    <div class="col">
+                        <h2 class="display-5 fw-bold text-success">Supported Crops</h2>
+                        <p class="lead text-muted">We detect diseases in a wide variety of crops</p>
+                    </div>
+                </div>
+                <div class="row justify-content-center">
+                    <div class="col-lg-10 text-center">
+                        <span class="crop-badge" style="animation-delay: 0.1s">Tomato</span>
+                        <span class="crop-badge" style="animation-delay: 0.15s">Maize</span>
+                        <span class="crop-badge" style="animation-delay: 0.2s">Cassava</span>
+                        <span class="crop-badge" style="animation-delay: 0.25s">Cashew</span>
+                        <span class="crop-badge" style="animation-delay: 0.3s">Apple</span>
+                        <span class="crop-badge" style="animation-delay: 0.35s">Corn</span>
+                        <span class="crop-badge" style="animation-delay: 0.4s">Potato</span>
+                        <span class="crop-badge" style="animation-delay: 0.45s">Pepper</span>
+                        <span class="crop-badge" style="animation-delay: 0.5s">Rice</span>
+                        <span class="crop-badge" style="animation-delay: 0.55s">Wheat</span>
+                        <span class="crop-badge" style="animation-delay: 0.6s">Soybean</span>
+                        <span class="crop-badge" style="animation-delay: 0.65s">Cotton</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="testimonials-section" id="testimonials">
+            <div class="container">
+                <div class="row text-center mb-5">
+                    <div class="col">
+                        <h2 class="display-5 fw-bold text-success">Trusted by Farmers</h2>
+                        <p class="lead text-muted">See what farmers are saying about AgriScan</p>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card feature-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-bolt fa-3x text-success mb-3"></i>
+                                <h5 class="card-title">Instant Results</h5>
+                                <p class="card-text">Get AI-powered disease diagnosis in seconds, not days.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card feature-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-mobile-alt fa-3x text-primary mb-3"></i>
+                                <h5 class="card-title">Web-Based</h5>
+                                <p class="card-text">No installation required. Works on any device with a browser.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card feature-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-wifi fa-3x text-warning mb-3"></i>
+                                <h5 class="card-title">Low Bandwidth</h5>
+                                <p class="card-text">Optimized for rural areas with limited internet connectivity.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card feature-card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-seedling fa-3x text-info mb-3"></i>
+                                <h5 class="card-title">Multiple Crops</h5>
+                                <p class="card-text">Detects diseases in tomatoes, maize, cassava, cashew, and more.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="testimonials-section bg-light">
+            <div class="container">
+                <div class="row text-center mb-5">
+                    <div class="col">
+                        <h2 class="display-5 fw-bold text-success">Trusted by Farmers</h2>
+                        <p class="lead text-muted">See what farmers are saying about AgriScan</p>
+                    </div>
+                </div>
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="testimonial-card">
+                            <p class="testimonial-text">"AgriScan helped me identify late blight in my tomatoes early. The treatment recommendations saved my entire harvest."</p>
+                            <div class="mt-3">
+                                <strong>Thabo M.</strong>
+                                <div class="text-muted small">Tomato Farmer, Mpumalanga</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="testimonial-card">
+                            <p class="testimonial-text">"Finally, a tool I can use on my old phone without installing anything. The results are fast and accurate."</p>
+                            <div class="mt-3">
+                                <strong>Nomsa D.</strong>
+                                <div class="text-muted small">Subsistence Farmer, Limpopo</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="testimonial-card">
+                            <p class="testimonial-text">"I use AgriScan to help monitor the crops of the farmers I support. It's become an essential part of my toolkit."</p>
+                            <div class="mt-3">
+                                <strong>Jacob K.</strong>
+                                <div class="text-muted small">Agricultural Advisor, KwaZulu-Natal</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-section">
+            <div class="container">
+                <h2 class="display-5 fw-bold mb-4">Ready to Diagnose Your Crops?</h2>
+                <p class="lead mb-5" style="opacity: 0.95;">Upload a photo now and get instant AI-powered disease detection.</p>
+                {% if session.user_role != 'admin' %}
+                <a href="/plant-scan" class="btn btn-custom btn-lg">
+                    <i class="fas fa-camera me-2"></i>Scan Your Plant Now
+                </a>
+                {% endif %}
+            </div>
+        </section>
+
+        <footer>
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-leaf me-2"></i>AgriScan</h5>
+                        <p style="opacity: 0.8;">AI-powered crop disease detection for small-scale farmers. Built with MobileNetV2 and TensorFlow.</p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <h5>Quick Links</h5>
+                        <ul class="list-unstyled">
+                            <li><a href="#how-it-works">How It Works</a></li>
+                            <li><a href="#crops">Supported Crops</a></li>
+                            <li><a href="#testimonials">Testimonials</a></li>
+                            {% if session.user_role != 'admin' %}
+                            <li><a href="/plant-scan">Plant Scanner</a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                <hr style="border-color: rgba(255,255,255,0.2);">
+                <div class="text-center">
+                    <p class="mb-0" style="opacity: 0.7;">&copy; 2025 AgriScan. All rights reserved. Research prototype — not a certified diagnostic tool.</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
