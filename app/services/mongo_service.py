@@ -157,6 +157,15 @@ class MongoService:
         result = collection.insert_one(log_data)
         return str(result.inserted_id)
 
+    def count_logs(self, action_filter=None):
+        collection = self.get_collection('logs')
+        if collection is None:
+            return 0
+        query = {}
+        if action_filter:
+            query['action'] = {'$regex': action_filter, '$options': 'i'}
+        return collection.count_documents(query)
+
     def find_logs(self, limit=100, skip=0, action_filter=None):
         collection = self.get_collection('logs')
         if collection is None:

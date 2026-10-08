@@ -68,13 +68,8 @@ def create_app():
         return password
 
     def check_password(password, hashed):
-        if not hashed:
-            return False
         if bcrypt:
-            try:
-                return bcrypt.check_password_hash(hashed, password)
-            except Exception:
-                return password == hashed
+            return bcrypt.check_password_hash(hashed, password)
         return password == hashed
 
     def log_action(action, details=None, user_id=None):
@@ -87,46 +82,19 @@ def create_app():
                 'user_role': session.get('user_role')
             })
 
-    @app.errorhandler(400)
-    def bad_request(error):
-        return jsonify({'success': False, 'error': 'Bad request', 'message': 'Bad request'}), 400
-
-    @app.errorhandler(404)
-    def not_found(error):
-        return jsonify({'success': False, 'error': 'Not found', 'message': 'Resource not found'}), 404
-
-    @app.errorhandler(405)
-    def method_not_allowed(error):
-        return jsonify({'success': False, 'error': 'Method not allowed', 'message': 'Method not allowed'}), 405
-
-    @app.errorhandler(500)
-    def internal_error(error):
-        return jsonify({'success': False, 'error': 'Internal server error', 'message': 'An internal error occurred'}), 500
-
-    @app.errorhandler(Exception)
-    def handle_exception(error):
-        app.logger.error(f"Unhandled exception: {error}")
-        return jsonify({'success': False, 'error': 'Internal server error', 'message': 'An internal error occurred'}), 500
-
     @app.route('/')
     def index():
-        if 'user_id' not in session:
-            return redirect(url_for('login'))
-        if session.get('user_role') == 'admin':
-            return redirect(url_for('admin_dashboard'))
         return render_template('index.html', user=session)
 
     @app.route('/login')
     def login():
         if 'user_id' in session:
-            if session.get('user_role') == 'admin':
-                return redirect(url_for('admin_dashboard'))
             return redirect(url_for('index'))
         return render_template('login.html')
 
     @app.route('/login', methods=['POST'])
     def login_post():
-        data = request.get_json(silent=True) or {}
+        data = request.get_json()
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
 
@@ -152,7 +120,7 @@ def create_app():
 
     @app.route('/register', methods=['POST'])
     def register_post():
-        data = request.get_json(silent=True) or {}
+        data = request.get_json()
 
         required_fields = ['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'phone', 'location']
         for field in required_fields:
@@ -198,7 +166,7 @@ def create_app():
         user_email = session.get('user_email')
         log_action('logout', f"User {user_email} logged out")
         session.clear()
-        return redirect(url_for('login'))
+        return redirect(url_for('index'))
 
     @app.route('/plant-scan')
     def plant_scan():
@@ -220,10 +188,10 @@ def create_app():
         if file.filename == '':
             return jsonify({'success': False, 'error': 'No image selected'}), 400
 
-        allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif', '.tiff'}
+        allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp'}
         file_ext = os.path.splitext(file.filename)[1].lower()
         if file_ext not in allowed_extensions:
-            return jsonify({'success': False, 'error': 'Invalid file type. Please upload JPG, PNG, WebP, BMP, GIF, or TIFF images.'}), 400
+            return jsonify({'success': False, 'error': 'Invalid file type. Please upload JPG, PNG, or WebP images.'}), 400
 
         try:
             from PIL import Image
@@ -277,7 +245,7 @@ def create_app():
         skip = int(request.args.get('skip', 0))
         disease_filter = request.args.get('disease')
 
-        if mongo_service is None:
+        if not (mongo_service and mongo_service.db):
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         scans = mongo_service.find_scans(limit=limit, skip=skip, disease_filter=disease_filter)
@@ -331,7 +299,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        if mongo_service is None:
+        if not (mongo_service and mongo_service.db):
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         analytics = mongo_service.get_analytics_summary()
@@ -342,7 +310,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        if mongo_service is None:
+        if not (mongo_service and mongo_service.db):
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         users = mongo_service.find_users(limit=100)
@@ -353,7 +321,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        data = request.get_json(silent=True) or {}
+        data = request.get_json()
         required_fields = ['firstName', 'lastName', 'email', 'password', 'role']
         for field in required_fields:
             if not data.get(field):
@@ -384,7 +352,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        data = request.get_json(silent=True) or {}
+        data = request.get_json()
         allowed_fields = ['firstName', 'lastName', 'phone', 'location', 'farmSize', 'role']
         if 'password' in data and data['password']:
             data['password'] = hash_password(data['password'])
@@ -411,7 +379,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        if mongo_service is None:
+        if not (mongo_service and mongo_service.db):
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         diseases = mongo_service.find_diseases(limit=200)
@@ -422,7 +390,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        data = request.get_json(silent=True) or {}
+        data = request.get_json()
         if not data.get('name'):
             return jsonify({'success': False, 'message': 'Disease name is required'}), 400
 
@@ -437,7 +405,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        data = request.get_json(silent=True) or {}
+        data = request.get_json()
         if mongo_service.update_disease(disease_id, data):
             log_action('update_disease', f"Updated disease: {disease_id}", session.get('user_id'))
             return jsonify({'success': True})
@@ -458,7 +426,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        if mongo_service is None:
+        if not (mongo_service and mongo_service.db):
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         limit = int(request.args.get('limit', 50))
@@ -469,12 +437,25 @@ def create_app():
         total = mongo_service.count_scans(disease_filter=disease_filter)
         return jsonify({'success': True, 'scans': scans, 'total': total})
 
+    @app.route('/admin/api/scans/<scan_id>', methods=['DELETE'])
+    def admin_delete_scan_api(scan_id):
+        if 'user_id' not in session or session.get('user_role') != 'admin':
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+        if not (mongo_service and mongo_service.db):
+            return jsonify({'success': False, 'error': 'Database not connected'}), 500
+
+        if mongo_service.delete_scan(scan_id):
+            log_action('delete_scan', f"Deleted scan: {scan_id}", session.get('user_id'))
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'message': 'Failed to delete scan'}), 500
+
     @app.route('/admin/api/logs')
     def admin_logs_api():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        if mongo_service is None:
+        if not (mongo_service and mongo_service.db):
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         limit = int(request.args.get('limit', 100))
@@ -482,7 +463,7 @@ def create_app():
         action_filter = request.args.get('action')
 
         logs = mongo_service.find_logs(limit=limit, skip=skip, action_filter=action_filter)
-        total = mongo_service.get_collection('logs').count_documents({}) if mongo_service.get_collection('logs') else 0
+        total = mongo_service.count_logs(action_filter=action_filter)
         return jsonify({'success': True, 'logs': logs, 'total': total})
 
     return app

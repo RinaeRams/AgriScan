@@ -3,6 +3,10 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
+<div id="dashboardError" class="alert alert-danger" style="display: none; margin-bottom: 20px;">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <span id="errorMessage"></span>
+</div>
 <!-- Stats Row -->
 <div class="stats-row">
     <div class="stat-card primary">
@@ -154,11 +158,23 @@
 
 {% block scripts %}
 <script>
+function showDashboardError(message) {
+    document.getElementById('errorMessage').textContent = message;
+    document.getElementById('dashboardError').style.display = 'block';
+}
+
+function hideError() {
+    document.getElementById('dashboardError').style.display = 'none';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     fetch('/admin/api/analytics')
         .then(r => r.json())
         .then(res => {
-            if (!res.success) return;
+            if (!res.success) {
+                showDashboardError(res.error || 'Failed to load dashboard data');
+                return;
+            }
             const data = res.data;
 
             // Update stats with animation
@@ -241,7 +257,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         })
-        .catch(err => console.error('Analytics error:', err));
+        .catch(err => {
+            console.error('Analytics error:', err);
+            showDashboardError('Network error: Unable to load dashboard data. Please check your connection and try again.');
+        });
 });
 
 function animateValue(id, start, end, duration) {
