@@ -2,12 +2,16 @@ import json
 import os
 import numpy as np
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict
 from PIL import Image
 
 class AgricultureMLService:
     def __init__(self):
         self.model = None
+        self.tflite_interpreter = None
+        self.tflite_input_details = None
+        self.tflite_output_details = None
+        self.using_tflite = False
         self.class_names = []
         self.knowledge_base = self._load_knowledge_base()
         self._initialize_model()
@@ -169,46 +173,75 @@ class AgricultureMLService:
     def _initialize_model(self):
         """
         Initialize the model from the trained model file.
+        Prefers the full Keras model; falls back to TensorFlow Lite
+        for offline / on-device inference.
         """
-        try:
-            from tensorflow import keras
+        model_dir = os.path.join(os.path.dirname(__file__), '..', 'models')
+        os.makedirs(model_dir, exist_ok=True)
 
-            model_dir = os.path.join(os.path.dirname(__file__), '..', 'models')
-            os.makedirs(model_dir, exist_ok=True)
+        # Load class names from file
+        class_names_path = os.path.join(model_dir, 'class_names.json')
+        if os.path.exists(class_names_path):
+            with open(class_names_path, 'r') as f:
+                self.class_names = json.load(f)
+            print(f"Loaded {len(self.class_names)} class names from file")
+        else:
+            # Fallback to hardcoded list
+            self.class_names = [
+                'Apple Black Rot', 'Apple Cedar Rust', 'Apple Healthy',
+                'Corn Common Rust', 'Corn Gray Leaf Spot', 'Corn Healthy',
+                'Corn Northern Leaf Blight',
+                'Potato Early Blight', 'Potato Healthy', 'Potato Late Blight',
+                'Tomato Bacterial Spot', 'Tomato Early Blight', 'Tomato Healthy',
+                'Tomato Late Blight', 'Tomato Leaf Mold', 'Tomato Septoria Leaf Spot',
+                'Tomato Spider Mites', 'Tomato Target Spot',
+                'Tomato Mosaic Virus', 'Tomato Yellow Leaf Curl Virus'
+            ]
+            print(f"Using default {len(self.class_names)} class names")
 
-            # Load class names from file
-            class_names_path = os.path.join(model_dir, 'class_names.json')
-            if os.path.exists(class_names_path):
-                with open(class_names_path, 'r') as f:
-                    self.class_names = json.load(f)
-                print(f"Loaded {len(self.class_names)} class names from file")
-            else:
-                # Fallback to hardcoded list
-                self.class_names = [
-                    'Apple Black Rot', 'Apple Cedar Rust', 'Apple Healthy',
-                    'Corn Common Rust', 'Corn Gray Leaf Spot', 'Corn Healthy',
-                    'Corn Northern Leaf Blight',
-                    'Potato Early Blight', 'Potato Healthy', 'Potato Late Blight',
-                    'Tomato Bacterial Spot', 'Tomato Early Blight', 'Tomato Healthy',
-                    'Tomato Late Blight', 'Tomato Leaf Mold', 'Tomato Septoria Leaf Spot',
-                    'Tomato Spider Mites', 'Tomato Target Spot',
-                    'Tomato Mosaic Virus', 'Tomato Yellow Leaf Curl Virus'
-                ]
-                print(f"Using default {len(self.class_names)} class names")
-
-            model_path = os.path.join(model_dir, 'agriscan_model.h5')
-            if os.path.exists(model_path):
+        # Try loading the full Keras model first
+        model_path = os.path.join(model_dir, 'agriscan_model.h5')
+        if os.path.exists(model_path):
+            try:
+                from tensorflow import keras
                 print(f"Loading model from {model_path}")
                 self.model = keras.models.load_model(model_path)
                 print("Loaded trained AgriScan model successfully")
-            else:
-                print(f"Model not found at {model_path}")
-                print("Model will use fallback predictions until trained")
+            except Exception as e:
+                print(f"Could not load Keras model: {e}")
+                print("Falling back to TFLite model if available...")
                 self.model = None
 
-        except Exception as e:
-            print(f"Could not initialize model: {e}")
-            self.model = None
+        # If Keras model failed, try TensorFlow Lite for offline inference
+        if self.model is None:
+            for tflite_name in ['agriscan_model_float16.tflite',
+                                'agriscan_model_int8.tflite',
+                                'agriscan_model_float32.tflite']:
+                tflite_path = os.path.join(model_dir, tflite_name)
+                if os.path.exists(tflite_path):
+                    try:
+                        import tensorflow as tf
+                        print(f"Loading TFLite model from {tflite_path}")
+                        self.tflite_interpreter = tf.lite.Interpreter(model_path=tflite_path)
+                        self.tflite_interpreter.allocate_tensors()
+                        self.tflite_input_details = self.tflite_interpreter.get_input_details()
+                        self.tflite_output_details = self.tflite_interpreter.get_output_details()
+                        self.using_tflite = True
+                        print("Loaded TFLite model successfully (offline mode)")
+                        break
+                    except Exception as e:
+                        print(f"Could not load TFLite model {tflite_name}: {e}")
+
+        if self.model is None and not self.using_tflite:
+            print("No model found. Model will use fallback predictions until trained")
+
+    def _predict_with_tflite(self, img_array: np.ndarray) -> np.ndarray:
+        """Run inference using the TensorFlow Lite interpreter."""
+        input_data = img_array.astype(self.tflite_input_details[0]['dtype'])
+        self.tflite_interpreter.set_tensor(self.tflite_input_details[0]['index'], input_data)
+        self.tflite_interpreter.invoke()
+        output = self.tflite_interpreter.get_tensor(self.tflite_output_details[0]['index'])
+        return output
 
     def preprocess_image(self, image: Image.Image) -> np.ndarray:
         """
@@ -241,11 +274,13 @@ class AgricultureMLService:
         """
         Predict disease from plant image.
         Returns dict with disease name, confidence, all predictions, and timestamp.
+        Supports both full Keras models and TensorFlow Lite models for offline inference.
         """
-        if self.model is None:
+        if self.model is None and not self.using_tflite:
             return {
                 'success': False,
-                'error': 'Model not trained yet. Please run train_model.py first.',
+                'error': 'Model not loaded. Please run train_model.py and/or '
+                         'scripts/convert_to_tflite.py first.',
                 'disease': None,
                 'confidence': 0.0,
                 'all_predictions': {},
@@ -256,8 +291,16 @@ class AgricultureMLService:
             # Preprocess image
             img_array = self.preprocess_image(image)
 
-            # Get predictions
-            predictions = self.model.predict(img_array, verbose=0)[0]
+            # Get predictions from Keras model or TFLite interpreter
+            if self.using_tflite:
+                predictions = self._predict_with_tflite(img_array)[0]
+                # Dequantize if int8 model
+                if self.tflite_output_details[0]['dtype'] == np.int8:
+                    scale = self.tflite_output_details[0]['quantization'][0]
+                    zero_point = self.tflite_output_details[0]['quantization'][1]
+                    predictions = scale * (predictions.astype(np.float32) - zero_point)
+            else:
+                predictions = self.model.predict(img_array, verbose=0)[0]
 
             # Get top prediction
             predicted_class_idx = np.argmax(predictions)
@@ -286,7 +329,8 @@ class AgricultureMLService:
                 'all_predictions': {k: round(v, 2) for k, v in all_predictions.items()},
                 'description': disease_info['description'],
                 'recommendations': disease_info['recommendations'],
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.utcnow().isoformat(),
+                'offline': self.using_tflite
             }
 
         except Exception as e:

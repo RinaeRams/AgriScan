@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import os
 import logging
 from datetime import datetime
@@ -62,6 +62,16 @@ def create_app():
         print(f"Could not initialize ML service: {e}")
         ml_service = None
 
+    def _is_bcrypt_hash(hashed):
+        """Detect whether a stored password value is a bcrypt hash."""
+        if not hashed:
+            return False
+        return (
+            hashed.startswith('$2a$') or
+            hashed.startswith('$2b$') or
+            hashed.startswith('$2y$')
+        )
+
     def hash_password(password):
         if bcrypt:
             return bcrypt.generate_password_hash(password).decode('utf-8')
@@ -76,6 +86,82 @@ def create_app():
             except Exception:
                 return password == hashed
         return password == hashed
+
+    def check_password_with_migration(password, hashed):
+        """
+        Check password and transparently migrate legacy plain-text passwords
+        to bcrypt hashes.
+
+        Returns a tuple (is_valid, needs_migration, new_hash):
+          - is_valid: whether the password matches
+          - needs_migration: whether the stored password was plain-text and
+            should be upgraded to a bcrypt hash
+          - new_hash: a new bcrypt hash when migration is needed, or None
+        """
+        is_valid = check_password(password, hashed)
+        if not is_valid:
+            return False, False, None
+
+        if _is_bcrypt_hash(hashed):
+            return True, False, None
+        # Legacy plain-text password that validated via direct comparison.
+        # Migrate to bcrypt on next opportunity.
+        new_hash = hash_password(password) if bcrypt else None
+        return True, True, new_hash
+
+    def migrate_user_password(user_id, email, password, hashed):
+        """
+        Migrate a single user's plain-text password to a bcrypt hash.
+        Called when a legacy user logs in and their password is upgraded.
+        """
+        is_valid, needs_migration, new_hash = check_password_with_migration(password, hashed)
+        if needs_migration and new_hash is not None and mongo_service:
+            mongo_service.update_user(user_id, {'password': new_hash})
+            log_action('password_migrate', f"Upgraded password hash for user {email}", user_id)
+        return is_valid
+
+    def migrate_all_legacy_passwords(dry_run=True):
+        """
+        Scan all users and migrate plain-text passwords to bcrypt hashes.
+
+        Args:
+            dry_run: If True, only report legacy users without modifying.
+
+        Returns:
+            dict with keys 'total', 'migrated', 'errors', 'skipped'.
+        """
+        if not mongo_service or not bcrypt:
+            return {'total': 0, 'migrated': 0, 'errors': 0, 'skipped': 0,
+                    'message': 'Mongo service or bcrypt not available'}
+
+        users = mongo_service.find_users(limit=1000)
+        result = {'total': len(users), 'migrated': 0, 'errors': 0, 'skipped': 0}
+
+        for user in users:
+            stored = user.get('password', '')
+            if not stored:
+                result['skipped'] += 1
+                continue
+            if _is_bcrypt_hash(stored):
+                result['skipped'] += 1
+                continue
+
+            # Legacy plain-text password: hash and store
+            if not dry_run:
+                try:
+                    new_hash = bcrypt.generate_password_hash(stored).decode('utf-8')
+                    mongo_service.update_user(user.get('id'), {'password': new_hash})
+                    result['migrated'] += 1
+                    log_action('password_migrate',
+                               f"Migrated legacy password for user {user.get('email')}",
+                               user.get('id'))
+                except Exception as e:
+                    print(f"Failed to migrate password for user {user.get('email')}: {e}")
+                    result['errors'] += 1
+            else:
+                result['errors'] += 1
+
+        return result
 
     def log_action(action, details=None, user_id=None):
         if mongo_service:
@@ -129,6 +215,16 @@ def create_app():
 
         user = mongo_service.find_user_by_email(email) if mongo_service else None
         if user and check_password(password, user.get('password', '')):
+            # Transparently migrate legacy plain-text passwords to bcrypt
+            stored_hash = user.get('password', '')
+            if not _is_bcrypt_hash(stored_hash) and bcrypt:
+                try:
+                    new_hash = hash_password(password)
+                    mongo_service.update_user(user['id'], {'password': new_hash})
+                    log_action('password_migrate', f"Migrated legacy password for {email}", user['id'])
+                except Exception as migrate_err:
+                    print(f"Failed to migrate password for {email}: {migrate_err}")
+
             session['user_id'] = user['id']
             session['user_name'] = user.get('firstName', '') + ' ' + user.get('lastName', '')
             session['user_email'] = email
@@ -266,7 +362,6 @@ def create_app():
         if 'user_id' not in session:
             return jsonify({'success': False, 'error': 'Authentication required'}), 401
 
-        user_role = session.get('user_role')
         limit = int(request.args.get('limit', 50))
         skip = int(request.args.get('skip', 0))
         disease_filter = request.args.get('disease')
@@ -280,11 +375,14 @@ def create_app():
 
     @app.route('/api/health')
     def health_check():
+        has_tflite = bool(ml_service and ml_service.using_tflite)
         return jsonify({
             'status': 'healthy',
             'app_name': 'AgriScan',
             'ml_service': 'active' if ml_service else 'unavailable',
             'mongodb': 'connected' if mongo_service and mongo_service.db is not None else 'disconnected',
+            'offline_mode': has_tflite,
+            'offline_model': 'tflite' if has_tflite else None,
             'timestamp': datetime.now().isoformat()
         })
 
@@ -341,6 +439,20 @@ def create_app():
 
         users = mongo_service.find_users(limit=100)
         return jsonify({'success': True, 'users': users})
+
+    @app.route('/admin/api/migrate-passwords', methods=['POST'])
+    def admin_migrate_passwords_api():
+        if 'user_id' not in session or session.get('user_role') != 'admin':
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+
+        if not (mongo_service and mongo_service.db):
+            return jsonify({'success': False, 'error': 'Database not connected'}), 500
+
+        dry_run = request.get_json(silent=True) or {}
+        dry_run = dry_run.get('dry_run', True)
+
+        result = migrate_all_legacy_passwords(dry_run=dry_run)
+        return jsonify({'success': True, 'result': result})
 
     @app.route('/admin/api/users', methods=['POST'])
     def admin_create_user_api():

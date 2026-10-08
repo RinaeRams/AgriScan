@@ -121,14 +121,15 @@ data/*
 !data/README.md
 
 # Model artifacts (too large for version control)
-app/models/*.h5
-app/models/*.tflite
+# app/models/*.h5 and *.tflite are tracked because the app needs
+# them at runtime for both Keras and TensorFlow Lite (offline) inference
+app/models/*.keras
 
 # Logs
 logs/
 
 # Credentials
-*.json
+# *.json
 kaggle.json
 google-credentials.json
 agrihex-*.json
