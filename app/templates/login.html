@@ -459,7 +459,52 @@
             box-shadow: none;
         }
 
-        /* ===== Footer ===== */
+        /* ===== Register Button ===== */
+        .register-divider {
+            text-align: center;
+            margin: 22px 0 14px;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            position: relative;
+        }
+
+        .register-divider::before,
+        .register-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 30%;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        .register-divider::before { left: 0; }
+        .register-divider::after { right: 0; }
+
+        .register-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid var(--primary);
+        }
+
+        .register-btn:hover {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(46, 125, 50, 0.32);
+            border-color: var(--primary-dark);
+        }
+
         .login-footer {
             text-align: center;
             margin-top: 26px;
@@ -674,6 +719,15 @@
                     <button type="submit" class="login-btn" id="loginBtn">
                         <span id="btnText">Login to AgriScan <i class="fas fa-arrow-right ms-2"></i></span>
                     </button>
+
+                    <div class="register-divider">
+                        <span>New to AgriScan?</span>
+                    </div>
+
+                    <a href="/register" class="register-btn">
+                        <span>Create Your Account</span>
+                        <i class="fas fa-user-plus ms-2"></i>
+                    </a>
 
                     <div class="demo-hint">
                         <button type="button" onclick="toggleDemo()">
