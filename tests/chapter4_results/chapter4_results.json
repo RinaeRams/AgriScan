@@ -1,0 +1,561 @@
+{
+  "evaluation_date": "2026-10-09T21:32:30.253542",
+  "model_path": "C:\\Users\\innoc\\OneDrive\\Desktop\\My_Projects\\AgriScan\\AgriNathiApp-master\\app\\models\\agriscan_model.h5",
+  "test_split_path": "C:\\Users\\innoc\\OneDrive\\Desktop\\My_Projects\\AgriScan\\AgriNathiApp-master\\data\\processed\\split\\test",
+  "total_test_images": 5497,
+  "class_names": [
+    "Pepper__bell___Bacterial_spot",
+    "Pepper__bell___healthy",
+    "Potato___Early_blight",
+    "Potato___healthy",
+    "Potato___Late_blight",
+    "Tomato__Target_Spot",
+    "Tomato__Tomato_mosaic_virus",
+    "Tomato__Tomato_YellowLeaf__Curl_Virus",
+    "Tomato_Bacterial_spot",
+    "Tomato_Early_blight",
+    "Tomato_healthy",
+    "Tomato_Late_blight",
+    "Tomato_Leaf_Mold",
+    "Tomato_Septoria_leaf_spot",
+    "Tomato_Spider_mites_Two_spotted_spider_mite"
+  ],
+  "class_counts": {
+    "Pepper__bell___Bacterial_spot": 274,
+    "Pepper__bell___healthy": 416,
+    "Potato___Early_blight": 278,
+    "Potato___healthy": 43,
+    "Potato___Late_blight": 280,
+    "Tomato__Target_Spot": 397,
+    "Tomato__Tomato_mosaic_virus": 101,
+    "Tomato__Tomato_YellowLeaf__Curl_Virus": 886,
+    "Tomato_Bacterial_spot": 579,
+    "Tomato_Early_blight": 275,
+    "Tomato_healthy": 223,
+    "Tomato_Late_blight": 523,
+    "Tomato_Leaf_Mold": 263,
+    "Tomato_Septoria_leaf_spot": 493,
+    "Tomato_Spider_mites_Two_spotted_spider_mite": 466
+  },
+  "training_history": null,
+  "render_health": "Service suspended (free tier). Local health check passed.",
+  "render_url": "https://agriscan-app.onrender.com/api/health",
+  "overall_accuracy": 0.8712024740767691,
+  "accuracy_ci_95": {
+    "lower": 0.8620871706884448,
+    "upper": 0.8797993071915946
+  },
+  "top3_accuracy": 0.979443332726942,
+  "precision_recall_f1": {
+    "per_class": {
+      "Pepper__bell___Bacterial_spot": {
+        "precision": 0.9753086419753086,
+        "recall": 0.864963503649635,
+        "f1_score": 0.9168278529980658,
+        "support": 274
+      },
+      "Pepper__bell___healthy": {
+        "precision": 0.918918918918919,
+        "recall": 0.9807692307692307,
+        "f1_score": 0.9488372093023256,
+        "support": 416
+      },
+      "Potato___Early_blight": {
+        "precision": 0.9545454545454546,
+        "recall": 0.9820143884892086,
+        "f1_score": 0.9680851063829787,
+        "support": 278
+      },
+      "Potato___healthy": {
+        "precision": 0.8857142857142857,
+        "recall": 0.7209302325581395,
+        "f1_score": 0.7948717948717948,
+        "support": 43
+      },
+      "Potato___Late_blight": {
+        "precision": 0.887719298245614,
+        "recall": 0.9035714285714286,
+        "f1_score": 0.8955752212389381,
+        "support": 280
+      },
+      "Tomato__Target_Spot": {
+        "precision": 0.6571428571428571,
+        "recall": 0.8690176322418136,
+        "f1_score": 0.7483731019522777,
+        "support": 397
+      },
+      "Tomato__Tomato_mosaic_virus": {
+        "precision": 0.9176470588235294,
+        "recall": 0.7722772277227723,
+        "f1_score": 0.8387096774193549,
+        "support": 101
+      },
+      "Tomato__Tomato_YellowLeaf__Curl_Virus": {
+        "precision": 0.9488888888888889,
+        "recall": 0.963882618510158,
+        "f1_score": 0.9563269876819709,
+        "support": 886
+      },
+      "Tomato_Bacterial_spot": {
+        "precision": 0.924074074074074,
+        "recall": 0.8618307426597582,
+        "f1_score": 0.8918677390527256,
+        "support": 579
+      },
+      "Tomato_Early_blight": {
+        "precision": 0.7783783783783784,
+        "recall": 0.5236363636363637,
+        "f1_score": 0.6260869565217392,
+        "support": 275
+      },
+      "Tomato_healthy": {
+        "precision": 0.8669527896995708,
+        "recall": 0.905829596412556,
+        "f1_score": 0.8859649122807017,
+        "support": 223
+      },
+      "Tomato_Late_blight": {
+        "precision": 0.896484375,
+        "recall": 0.8776290630975143,
+        "f1_score": 0.8869565217391304,
+        "support": 523
+      },
+      "Tomato_Leaf_Mold": {
+        "precision": 0.7898550724637681,
+        "recall": 0.8288973384030418,
+        "f1_score": 0.8089053803339518,
+        "support": 263
+      },
+      "Tomato_Septoria_leaf_spot": {
+        "precision": 0.8097165991902834,
+        "recall": 0.8113590263691683,
+        "f1_score": 0.8105369807497467,
+        "support": 493
+      },
+      "Tomato_Spider_mites_Two_spotted_spider_mite": {
+        "precision": 0.8546255506607929,
+        "recall": 0.8326180257510729,
+        "f1_score": 0.8434782608695652,
+        "support": 466
+      }
+    },
+    "macro_precision": 0.8710648162481149,
+    "macro_recall": 0.8466150945894574,
+    "macro_f1": 0.8547602468930179,
+    "weighted_f1": 0.8703886330432182
+  },
+  "confusion_matrix": [
+    [
+      237,
+      34,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      6,
+      408,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      273,
+      0,
+      5,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      31,
+      10,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1
+    ],
+    [
+      0,
+      0,
+      8,
+      4,
+      253,
+      0,
+      0,
+      0,
+      2,
+      4,
+      0,
+      7,
+      1,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      345,
+      2,
+      3,
+      6,
+      4,
+      9,
+      2,
+      1,
+      7,
+      18
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      78,
+      5,
+      0,
+      0,
+      0,
+      0,
+      7,
+      8,
+      1
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      4,
+      0,
+      854,
+      3,
+      0,
+      0,
+      1,
+      7,
+      7,
+      10
+    ],
+    [
+      0,
+      1,
+      0,
+      0,
+      1,
+      14,
+      0,
+      6,
+      499,
+      8,
+      1,
+      9,
+      3,
+      33,
+      4
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      5,
+      38,
+      0,
+      12,
+      4,
+      144,
+      3,
+      26,
+      9,
+      23,
+      10
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      16,
+      0,
+      0,
+      0,
+      0,
+      202,
+      0,
+      0,
+      0,
+      5
+    ],
+    [
+      0,
+      1,
+      0,
+      0,
+      7,
+      15,
+      0,
+      1,
+      1,
+      14,
+      1,
+      459,
+      14,
+      7,
+      3
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      1,
+      10,
+      2,
+      6,
+      3,
+      4,
+      1,
+      1,
+      218,
+      8,
+      9
+    ],
+    [
+      0,
+      0,
+      3,
+      0,
+      1,
+      32,
+      1,
+      3,
+      22,
+      6,
+      4,
+      6,
+      11,
+      400,
+      4
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      1,
+      49,
+      2,
+      8,
+      0,
+      1,
+      12,
+      1,
+      3,
+      0,
+      388
+    ]
+  ],
+  "most_confused_pairs": [
+    {
+      "true_class": "Tomato_Spider_mites_Two_spotted_spider_mite",
+      "predicted_class": "Tomato__Target_Spot",
+      "count": 49
+    },
+    {
+      "true_class": "Tomato_Early_blight",
+      "predicted_class": "Tomato__Target_Spot",
+      "count": 38
+    },
+    {
+      "true_class": "Pepper__bell___Bacterial_spot",
+      "predicted_class": "Pepper__bell___healthy",
+      "count": 34
+    },
+    {
+      "true_class": "Tomato_Bacterial_spot",
+      "predicted_class": "Tomato_Septoria_leaf_spot",
+      "count": 33
+    },
+    {
+      "true_class": "Tomato_Septoria_leaf_spot",
+      "predicted_class": "Tomato__Target_Spot",
+      "count": 32
+    },
+    {
+      "true_class": "Tomato_Early_blight",
+      "predicted_class": "Tomato_Late_blight",
+      "count": 26
+    },
+    {
+      "true_class": "Tomato_Early_blight",
+      "predicted_class": "Tomato_Septoria_leaf_spot",
+      "count": 23
+    },
+    {
+      "true_class": "Tomato_Septoria_leaf_spot",
+      "predicted_class": "Tomato_Bacterial_spot",
+      "count": 22
+    },
+    {
+      "true_class": "Tomato__Target_Spot",
+      "predicted_class": "Tomato_Spider_mites_Two_spotted_spider_mite",
+      "count": 18
+    },
+    {
+      "true_class": "Tomato_healthy",
+      "predicted_class": "Tomato__Target_Spot",
+      "count": 16
+    }
+  ],
+  "healthy_vs_diseased": {
+    "healthy_classes": [
+      "Pepper__bell___healthy",
+      "Potato___healthy",
+      "Tomato_healthy"
+    ],
+    "diseased_classes": [
+      "Pepper__bell___Bacterial_spot",
+      "Potato___Early_blight",
+      "Potato___Late_blight",
+      "Tomato__Target_Spot",
+      "Tomato__Tomato_mosaic_virus",
+      "Tomato__Tomato_YellowLeaf__Curl_Virus",
+      "Tomato_Bacterial_spot",
+      "Tomato_Early_blight",
+      "Tomato_Late_blight",
+      "Tomato_Leaf_Mold",
+      "Tomato_Septoria_leaf_spot",
+      "Tomato_Spider_mites_Two_spotted_spider_mite"
+    ],
+    "accuracy": 0.9796252501364381,
+    "healthy_precision": 0.9002808988764045,
+    "healthy_recall": 0.9398826979472141,
+    "healthy_f1": 0.9196556671449068,
+    "diseased_precision": 0.9914315569487984,
+    "diseased_recall": 0.9852544132917964,
+    "diseased_f1": 0.9883333333333333
+  },
+  "preprocessing_comparison": {
+    "method_01": {
+      "accuracy": 0.8712024740767691,
+      "macro_f1": 0.8547602468930179
+    },
+    "method_minus1_plus1": {
+      "accuracy": 0.7536838275422958,
+      "macro_f1": 0.7323056508855605
+    }
+  },
+  "response_times": {
+    "mean_ms": 29.12,
+    "median_ms": 26.27,
+    "max_ms": 142.02,
+    "min_ms": 23.86,
+    "stdev_ms": 11.6
+  },
+  "consistency": {
+    "consistent_across_runs": true,
+    "consistency_rate": 1.0
+  },
+  "e2e_note": "End-to-end browser testing requires a running server and browser automation. Run 'python tests/test_e2e.py' for desktop/mobile browser tests. For API-level end-to-end test, use: python tests/test_model.py",
+  "api_response_times": {
+    "endpoint": "/api/analyze-plant",
+    "auth_method": "session cookie after login",
+    "response_times_ms": {
+      "mean": 991.8,
+      "median": 339.9,
+      "max": 6908.3,
+      "min": 282.9,
+      "stdev": 2079.4
+    },
+    "consistency": {
+      "consistent": true,
+      "unique_predictions": 1,
+      "unique_disease": "Tomato_healthy"
+    },
+    "sample_results": [
+      {
+        "disease": "Tomato_healthy",
+        "confidence": 99.43,
+        "offline": false
+      },
+      {
+        "disease": "Tomato_healthy",
+        "confidence": 99.43,
+        "offline": false
+      },
+      {
+        "disease": "Tomato_healthy",
+        "confidence": 99.43,
+        "offline": false
+      }
+    ]
+  },
+  "end_to_end_tests": {
+    "desktop": {
+      "login_page": "PASS - Renders login form with register button, email/password fields, demo credentials toggle",
+      "register_button": "PASS - Gradient Create Account button visible, links to /register",
+      "register_page": "PASS - Registration form shows all fields (firstName, lastName, email, phone, location, farmSize, password, confirmPassword)",
+      "login_api": "PASS - POST /login with demo credentials returns success:true, role:user",
+      "analyze_api": "PASS - POST /api/analyze-plant returns disease, confidence, all_predictions, recommendations, offline=false",
+      "health_endpoint": "PASS - GET /api/health returns status:healthy, ml_service:active, mongodb:connected"
+    },
+    "mobile": {
+      "responsive_layout": "PASS - CSS media queries tested at 820px and 420px breakpoints",
+      "login_form": "PASS - Form fields resize for mobile, single-column layout on narrow screens",
+      "register_button": "PASS - Register button visible and clickable on mobile viewport",
+      "note": "Browser viewport testing via CSS inspection; full mobile device testing requires physical devices"
+    },
+    "render": {
+      "status": "Service suspended (free tier) - 503 Service Suspended",
+      "health_url": "https://agriscan-app.onrender.com/api/health",
+      "note": "Service auto-deploys on resume. Code pushed to GitHub commit 1b9846c."
+    },
+    "api_response_time_note": "First request includes TF model warm-up (~6.9s). Steady-state median: 339.9ms."
+  }
+}

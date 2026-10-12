@@ -153,6 +153,15 @@ def main():
         verbose=1
     )
 
+    # Save training history for learning-curve analysis
+    history_path = MODEL_DIR / "training_history.json"
+    history_dict = {k: list(v) for k, v in history.history.items()}
+    history_dict["early_stopped_epoch"] = int(np.argmin(history.history['val_loss']) + 1)
+    history_dict["total_epochs_run"] = len(history.history['loss'])
+    with open(history_path, 'w') as f:
+        json.dump(history_dict, f, indent=2)
+    print(f"Training history saved to {history_path}")
+
     print("\nEvaluating on test set...")
     test_loss, test_acc = model.evaluate(test_ds, verbose=1)
     print(f"\nTest Accuracy: {test_acc:.4f}")
