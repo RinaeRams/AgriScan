@@ -188,8 +188,13 @@ def main():
     training_results = None
     if history:
         training_results = {
-            "epochs_run": history.get("total_epochs_run", len(history.get("loss", []))),
+            "total_epochs_run": history.get("total_epochs_run", len(history.get("loss", []))),
             "early_stopped_epoch": history.get("early_stopped_epoch", 0),
+            "accuracy": history.get("accuracy", []),
+            "val_accuracy": history.get("val_accuracy", []),
+            "loss": history.get("loss", []),
+            "val_loss": history.get("val_loss", []),
+            "epochs_run": history.get("total_epochs_run", len(history.get("loss", []))),
             "train_accuracy": history.get("accuracy", []),
             "val_accuracy": history.get("val_accuracy", []),
             "train_loss": history.get("loss", []),
