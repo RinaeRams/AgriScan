@@ -8,10 +8,6 @@ from PIL import Image
 class AgricultureMLService:
     def __init__(self):
         self.model = None
-        self.tflite_interpreter = None
-        self.tflite_input_details = None
-        self.tflite_output_details = None
-        self.using_tflite = False
         self.class_names = []
         self.knowledge_base = self._load_knowledge_base()
         self._initialize_model()
@@ -209,58 +205,13 @@ class AgricultureMLService:
                 print("Loaded trained AgriScan model successfully")
             except Exception as e:
                 print(f"Could not load Keras model: {e}")
-                print("Falling back to TFLite model if available...")
-                self.model = None
-
-        # If Keras model failed, try TensorFlow Lite for offline inference
         if self.model is None:
-            for tflite_name in ['agriscan_model_float16.tflite',
-                                'agriscan_model_int8.tflite',
-                                'agriscan_model_float32.tflite']:
-                tflite_path = os.path.join(model_dir, tflite_name)
-                if os.path.exists(tflite_path):
-                    try:
-                        import tensorflow as tf
-                        print(f"Loading TFLite model from {tflite_path}")
-                        self.tflite_interpreter = tf.lite.Interpreter(model_path=tflite_path)
-                        self.tflite_interpreter.allocate_tensors()
-                        self.tflite_input_details = self.tflite_interpreter.get_input_details()
-                        self.tflite_output_details = self.tflite_interpreter.get_output_details()
-
-                        # Validate that the model supports standard image input
-                        input_dtype = self.tflite_input_details[0]['dtype']
-                        valid_dtypes = (np.float32, np.float16, np.int8, np.uint8,
-                                        np.int32, np.int64, np.bool_)
-                        if input_dtype not in valid_dtypes:
-                            raise TypeError(
-                                f"TFLite model {tflite_name} uses unsupported input dtype '{input_dtype}'. "
-                                "This model may have been created with the TFLite Task API which embeds "
-                                "image preprocessing metadata. It does not support direct array input."
-                            )
-
-                        # Validate input shape is compatible with image data (at least 4D: batch, h, w, channels)
-                        input_shape = self.tflite_input_details[0]['shape']
-                        if len(input_shape) < 4:
-                            raise ValueError(
-                                f"TFLite model {tflite_name} has unexpected input shape {input_shape}. "
-                                "Expected a 4D tensor (batch, height, width, channels)."
-                            )
-
-                        self.using_tflite = True
-                        print("Loaded TFLite model successfully (offline mode)")
-                        break
-                    except Exception as e:
-                        print(f"Could not load TFLite model {tflite_name}: {e}")
-                        self.tflite_interpreter = None
-                        self.using_tflite = False
-
-        if self.model is None and not self.using_tflite:
             print("No model found. Model will use fallback predictions until trained")
 
     def prewarm(self) -> bool:
         """Run a dummy prediction to trigger TF graph compilation so the first
         real API request does not incur cold-start latency."""
-        if self.model is None and not self.using_tflite:
+        if self.model is None:
             return False
         try:
             from PIL import Image
@@ -270,23 +221,6 @@ class AgricultureMLService:
         except Exception:
             return False
 
-    def _predict_with_tflite(self, img_array: np.ndarray) -> np.ndarray:
-        """Run inference using the TensorFlow Lite interpreter."""
-        input_dtype = self.tflite_input_details[0]['dtype']
-        input_shape = self.tflite_input_details[0]['shape']
-
-        # Ensure the input array matches the expected shape and dtype
-        expected_shape = tuple(input_shape[1:])
-        if img_array.shape[1:] != expected_shape:
-            raise ValueError(
-                f"Input shape {img_array.shape} does not match model expected {input_shape}"
-            )
-
-        input_data = img_array.astype(input_dtype)
-        self.tflite_interpreter.set_tensor(self.tflite_input_details[0]['index'], input_data)
-        self.tflite_interpreter.invoke()
-        output = self.tflite_interpreter.get_tensor(self.tflite_output_details[0]['index'])
-        return output
 
     def preprocess_image(self, image: Image.Image) -> np.ndarray:
         """
@@ -321,11 +255,11 @@ class AgricultureMLService:
         Returns dict with disease name, confidence, all predictions, and timestamp.
         Supports both full Keras models and TensorFlow Lite models for offline inference.
         """
-        if self.model is None and not self.using_tflite:
+        if self.model is None:
             return {
                 'success': False,
                 'error': 'Model not loaded. Please run train_model.py and/or '
-                         'scripts/convert_to_tflite.py first.',
+                         'trained model file.',
                 'disease': None,
                 'confidence': 0.0,
                 'all_predictions': {},
@@ -336,16 +270,8 @@ class AgricultureMLService:
             # Preprocess image
             img_array = self.preprocess_image(image)
 
-            # Get predictions from Keras model or TFLite interpreter
-            if self.using_tflite:
-                predictions = self._predict_with_tflite(img_array)[0]
-                # Dequantize if int8 model
-                if self.tflite_output_details[0]['dtype'] == np.int8:
-                    scale = self.tflite_output_details[0]['quantization'][0]
-                    zero_point = self.tflite_output_details[0]['quantization'][1]
-                    predictions = scale * (predictions.astype(np.float32) - zero_point)
-            else:
-                predictions = self.model.predict(img_array, verbose=0)[0]
+            # Get predictions from Keras model
+            predictions = self.model.predict(img_array, verbose=0)[0]
 
             # Get top prediction
             predicted_class_idx = np.argmax(predictions)
@@ -375,7 +301,7 @@ class AgricultureMLService:
                 'description': disease_info['description'],
                 'recommendations': disease_info['recommendations'],
                 'timestamp': datetime.utcnow().isoformat(),
-                'offline': self.using_tflite
+                'offline': False
             }
 
         except Exception as e:
