@@ -226,11 +226,33 @@ class AgricultureMLService:
                         self.tflite_interpreter.allocate_tensors()
                         self.tflite_input_details = self.tflite_interpreter.get_input_details()
                         self.tflite_output_details = self.tflite_interpreter.get_output_details()
+
+                        # Validate that the model supports standard image input
+                        input_dtype = self.tflite_input_details[0]['dtype']
+                        valid_dtypes = (np.float32, np.float16, np.int8, np.uint8,
+                                        np.int32, np.int64, np.bool_)
+                        if input_dtype not in valid_dtypes:
+                            raise TypeError(
+                                f"TFLite model {tflite_name} uses unsupported input dtype '{input_dtype}'. "
+                                "This model may have been created with the TFLite Task API which embeds "
+                                "image preprocessing metadata. It does not support direct array input."
+                            )
+
+                        # Validate input shape is compatible with image data (at least 4D: batch, h, w, channels)
+                        input_shape = self.tflite_input_details[0]['shape']
+                        if len(input_shape) < 4:
+                            raise ValueError(
+                                f"TFLite model {tflite_name} has unexpected input shape {input_shape}. "
+                                "Expected a 4D tensor (batch, height, width, channels)."
+                            )
+
                         self.using_tflite = True
                         print("Loaded TFLite model successfully (offline mode)")
                         break
                     except Exception as e:
                         print(f"Could not load TFLite model {tflite_name}: {e}")
+                        self.tflite_interpreter = None
+                        self.using_tflite = False
 
         if self.model is None and not self.using_tflite:
             print("No model found. Model will use fallback predictions until trained")
@@ -250,7 +272,17 @@ class AgricultureMLService:
 
     def _predict_with_tflite(self, img_array: np.ndarray) -> np.ndarray:
         """Run inference using the TensorFlow Lite interpreter."""
-        input_data = img_array.astype(self.tflite_input_details[0]['dtype'])
+        input_dtype = self.tflite_input_details[0]['dtype']
+        input_shape = self.tflite_input_details[0]['shape']
+
+        # Ensure the input array matches the expected shape and dtype
+        expected_shape = tuple(input_shape[1:])
+        if img_array.shape[1:] != expected_shape:
+            raise ValueError(
+                f"Input shape {img_array.shape} does not match model expected {input_shape}"
+            )
+
+        input_data = img_array.astype(input_dtype)
         self.tflite_interpreter.set_tensor(self.tflite_input_details[0]['index'], input_data)
         self.tflite_interpreter.invoke()
         output = self.tflite_interpreter.get_tensor(self.tflite_output_details[0]['index'])
