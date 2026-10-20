@@ -370,7 +370,7 @@ def create_app():
         skip = int(request.args.get('skip', 0))
         disease_filter = request.args.get('disease')
 
-        if not (mongo_service and mongo_service.db):
+        if not mongo_service or mongo_service.db is None:
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         scans = mongo_service.find_scans(limit=limit, skip=skip, disease_filter=disease_filter)
@@ -427,7 +427,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        if not (mongo_service and mongo_service.db):
+        if not mongo_service or mongo_service.db is None:
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         analytics = mongo_service.get_analytics_summary()
@@ -438,7 +438,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        if not (mongo_service and mongo_service.db):
+        if not mongo_service or mongo_service.db is None:
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         users = mongo_service.find_users(limit=100)
@@ -449,7 +449,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        if not (mongo_service and mongo_service.db):
+        if not mongo_service or mongo_service.db is None:
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         dry_run = request.get_json(silent=True) or {}
@@ -521,7 +521,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        if not (mongo_service and mongo_service.db):
+        if not mongo_service or mongo_service.db is None:
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         diseases = mongo_service.find_diseases(limit=200)
@@ -568,7 +568,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        if not (mongo_service and mongo_service.db):
+        if not mongo_service or mongo_service.db is None:
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         limit = int(request.args.get('limit', 50))
@@ -584,7 +584,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        if not (mongo_service and mongo_service.db):
+        if not mongo_service or mongo_service.db is None:
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         if mongo_service.delete_scan(scan_id):
@@ -597,7 +597,7 @@ def create_app():
         if 'user_id' not in session or session.get('user_role') != 'admin':
             return jsonify({'success': False, 'error': 'Access denied'}), 403
 
-        if not (mongo_service and mongo_service.db):
+        if not mongo_service or mongo_service.db is None:
             return jsonify({'success': False, 'error': 'Database not connected'}), 500
 
         limit = int(request.args.get('limit', 100))

@@ -30,6 +30,24 @@ class MongoService:
             return None
         return self.db[collection_name]
 
+    def _to_json_safe(self, doc):
+        """Convert a MongoDB document to a JSON-serializable dict.
+        Strips the _id field and converts datetime values to ISO format strings."""
+        if doc is None:
+            return None
+        result = {}
+        for k, v in doc.items():
+            if k == '_id':
+                result['id'] = str(v)
+                continue
+            if isinstance(v, datetime):
+                result[k] = v.isoformat()
+            elif isinstance(v, ObjectId):
+                result[k] = str(v)
+            else:
+                result[k] = v
+        return result
+
     def insert_scan(self, scan_data):
         collection = self.get_collection('scans')
         if collection is None:
@@ -46,7 +64,7 @@ class MongoService:
         if disease_filter:
             query['disease'] = {'$regex': disease_filter, '$options': 'i'}
         cursor = collection.find(query).sort('timestamp', -1).skip(skip).limit(limit)
-        return [{k: v for k, v in doc.items() if k != '_id'} for doc in cursor]
+        return [self._to_json_safe(doc) for doc in cursor]
 
     def count_scans(self, disease_filter=None):
         collection = self.get_collection('scans')
@@ -63,9 +81,7 @@ class MongoService:
             return None
         try:
             doc = collection.find_one({'_id': ObjectId(scan_id)})
-            if doc:
-                doc['id'] = str(doc.pop('_id'))
-            return doc
+            return self._to_json_safe(doc)
         except Exception:
             return None
 
@@ -93,9 +109,7 @@ class MongoService:
         if collection is None:
             return None
         doc = collection.find_one({'email': email})
-        if doc:
-            doc['id'] = str(doc.pop('_id'))
-        return doc
+        return self._to_json_safe(doc)
 
     def find_user_by_id(self, user_id):
         collection = self.get_collection('users')
@@ -103,9 +117,7 @@ class MongoService:
             return None
         try:
             doc = collection.find_one({'_id': ObjectId(user_id)})
-            if doc:
-                doc['id'] = str(doc.pop('_id'))
-            return doc
+            return self._to_json_safe(doc)
         except Exception:
             return None
 
@@ -117,7 +129,7 @@ class MongoService:
         if role:
             query['role'] = role
         cursor = collection.find(query).sort('created_at', -1).skip(skip).limit(limit)
-        return [{k: v for k, v in doc.items() if k != '_id'} for doc in cursor]
+        return [self._to_json_safe(doc) for doc in cursor]
 
     def update_user(self, user_id, update_data):
         collection = self.get_collection('users')
@@ -174,7 +186,7 @@ class MongoService:
         if action_filter:
             query['action'] = {'$regex': action_filter, '$options': 'i'}
         cursor = collection.find(query).sort('timestamp', -1).skip(skip).limit(limit)
-        return [{k: v for k, v in doc.items() if k != '_id'} for doc in cursor]
+        return [self._to_json_safe(doc) for doc in cursor]
 
     def insert_disease(self, disease_data):
         collection = self.get_collection('diseases')
@@ -190,7 +202,7 @@ class MongoService:
         if collection is None:
             return []
         cursor = collection.find().sort('name', 1).skip(skip).limit(limit)
-        return [{k: v for k, v in doc.items() if k != '_id'} for doc in cursor]
+        return [self._to_json_safe(doc) for doc in cursor]
 
     def update_disease(self, disease_id, update_data):
         collection = self.get_collection('diseases')
@@ -218,23 +230,24 @@ class MongoService:
         users_collection = self.get_collection('users')
         logs_collection = self.get_collection('logs')
 
-        total_scans = scans_collection.count_documents({}) if scans_collection else 0
-        total_users = users_collection.count_documents({}) if users_collection else 0
-        total_logs = logs_collection.count_documents({}) if logs_collection else 0
+        total_scans = scans_collection.count_documents({}) if scans_collection is not None else 0
+        total_users = users_collection.count_documents({}) if users_collection is not None else 0
+        total_logs = logs_collection.count_documents({}) if logs_collection is not None else 0
 
         recent_scans = self.find_scans(limit=10)
         recent_users = self.find_users(limit=10)
         recent_logs = self.find_logs(limit=10)
 
         disease_counts = {}
-        if scans_collection:
+        if scans_collection is not None:
             pipeline = [
                 {'$group': {'_id': '$disease', 'count': {'$sum': 1}}},
                 {'$sort': {'count': -1}},
                 {'$limit': 10}
             ]
             for doc in scans_collection.aggregate(pipeline):
-                disease_counts[doc['_id']] = doc['count']
+                key = doc['_id'] if doc['_id'] is not None else 'Unknown'
+                disease_counts[key] = doc['count']
 
         return {
             'total_scans': total_scans,
