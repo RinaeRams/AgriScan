@@ -76,9 +76,18 @@ def main():
 
     for class_name in all_classes:
         src_class_dir = SOURCE_DIR / class_name
-        images = list(src_class_dir.glob("*.jpg")) + list(src_class_dir.glob("*.JPG")) + \
-                 list(src_class_dir.glob("*.png")) + list(src_class_dir.glob("*.PNG")) + \
-                 list(src_class_dir.glob("*.jpeg")) + list(src_class_dir.glob("*.JPEG"))
+        # Deduplicate: on case-insensitive filesystems (Windows, macOS HFS+),
+        # glob('*.jpg') and glob('*.JPG') can return the same file twice.
+        # Use a set keyed on the lowercased name to avoid duplicate entries
+        # that would cause the same image to land in different splits.
+        seen = set()
+        images = []
+        for pattern in ("*.jpg", "*.JPG", "*.png", "*.PNG", "*.jpeg", "*.JPEG"):
+            for path in src_class_dir.glob(pattern):
+                key = path.name.lower()
+                if key not in seen:
+                    seen.add(key)
+                    images.append(path)
 
         random.shuffle(images)
         n = len(images)

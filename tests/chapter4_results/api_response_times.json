@@ -1,12 +1,12 @@
 {
   "endpoint": "/api/analyze-plant",
-  "auth_method": "session cookie after login",
+  "auth_method": "flask test client (no MongoDB auth)",
   "response_times_ms": {
-    "mean": 991.8,
-    "median": 339.9,
-    "max": 6908.3,
-    "min": 282.9,
-    "stdev": 2079.4
+    "mean": 558.4,
+    "median": 545.6,
+    "max": 692.5,
+    "min": 445.0,
+    "stdev": 73.7
   },
   "consistency": {
     "consistent": true,
@@ -16,17 +16,17 @@
   "sample_results": [
     {
       "disease": "Tomato_healthy",
-      "confidence": 99.43,
+      "confidence": 96.51,
       "offline": false
     },
     {
       "disease": "Tomato_healthy",
-      "confidence": 99.43,
+      "confidence": 96.51,
       "offline": false
     },
     {
       "disease": "Tomato_healthy",
-      "confidence": 99.43,
+      "confidence": 96.51,
       "offline": false
     }
   ]

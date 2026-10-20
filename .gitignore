@@ -139,5 +139,10 @@ agrihex-*.json
 *.png
 *.jpeg
 
+# Allow static assets required at runtime
+!static/img/*.png
+!static/img/*.jpg
+!static/img/*.jpeg
+
 # Cookies
 cookies.txt

@@ -5,6 +5,7 @@ import requests
 import time
 import json
 import os
+import sys
 import statistics
 from pathlib import Path
 
@@ -15,52 +16,104 @@ RESULTS_DIR.mkdir(exist_ok=True)
 BASE_URL = "http://127.0.0.1:5000"
 
 
-def main():
-    session = requests.Session()
+def measure_via_test_client(test_image_path, num_requests=10):
+    """Fallback: measure response times via Flask test client when the
+    live server (and MongoDB auth) are unavailable.  This still exercises
+    the full Flask route, preprocessing, and ML inference pipeline."""
+    sys.path.insert(0, str(BASE_DIR))
+    from app import create_app
+    app = create_app()
+    client = app.test_client()
 
-    # Login with demo credentials
-    print("Logging in...")
-    login_resp = session.post(
-        f"{BASE_URL}/login",
-        json={"email": "user@agri.com", "password": "password123"},
-        timeout=30,
-    )
-    login_data = login_resp.json()
-    print(f"Login response: {login_data}")
-
-    if not login_data.get("success"):
-        print("Login failed, testing health endpoint only.")
-        health_resp = requests.get(f"{BASE_URL}/api/health", timeout=10)
-        print(f"Health: {health_resp.json()}")
-        return
-
-    # Pick a test image
-    test_img_dir = BASE_DIR / "data" / "processed" / "split" / "test" / "Tomato_healthy"
-    test_images = [f for f in test_img_dir.iterdir()
-                   if f.suffix.lower() in ('.jpg', '.jpeg', '.png')]
-    img_path = test_images[0]
-    print(f"Testing with: {img_path.name}")
+    # Set a fake session so the auth check passes
+    with client.session_transaction() as sess:
+        sess['user_id'] = 'test'
+        sess['user_email'] = 'test@test.com'
+        sess['user_role'] = 'user'
+        sess['user_name'] = 'Test User'
 
     response_times = []
     results = []
 
-    for i in range(10):
-        with open(img_path, 'rb') as f:
-            files = {"image": (img_path.name, f, "image/jpeg")}
+    for i in range(num_requests):
+        with open(test_image_path, 'rb') as f:
             start = time.perf_counter()
-            resp = session.post(f"{BASE_URL}/api/analyze-plant", files=files, timeout=30)
+            resp = client.post('/api/analyze-plant',
+                               data={'image': (f, test_image_path.name, 'image/jpeg')},
+                               content_type='multipart/form-data')
             elapsed = (time.perf_counter() - start) * 1000
             response_times.append(elapsed)
             if resp.status_code == 200:
-                data = resp.json()
+                data = resp.get_json()
                 results.append({
                     "disease": data.get("disease"),
                     "confidence": data.get("confidence"),
                     "offline": data.get("offline"),
                 })
             else:
-                results.append({"error": resp.text[:100]})
-            print(f"  Request {i+1}: {elapsed:.1f}ms - status {resp.status_code}")
+                results.append({"error": str(resp.status_code)})
+            print(f"  Request {i + 1}: {elapsed:.1f}ms - status {resp.status_code}")
+
+    return response_times, results, "flask test client (no MongoDB auth)"
+
+
+def main():
+    session = requests.Session()
+
+    # Login with demo credentials
+    print("Logging in...")
+    try:
+        login_resp = session.post(
+            f"{BASE_URL}/login",
+            json={"email": "user@agri.com", "password": "password123"},
+            timeout=5,
+        )
+        login_data = login_resp.json()
+        print(f"Login response: {login_data}")
+    except requests.exceptions.ConnectionError:
+        print("No server running at", BASE_URL)
+        print("Falling back to Flask test client for response time measurement...")
+        login_data = {}
+
+    # Pick a test image
+    test_img_dir = BASE_DIR / "data" / "processed" / "split" / "test" / "Tomato_healthy"
+    test_images = [f for f in test_img_dir.iterdir()
+                   if f.suffix.lower() in ('.jpg', '.jpeg', '.png')]
+    if not test_images:
+        print("No test images found for Tomato_healthy")
+        return
+    img_path = test_images[0]
+    print(f"Testing with: {img_path.name}")
+
+    if login_data.get("success"):
+        auth_method = "session cookie after login"
+        response_times = []
+        results = []
+
+        for i in range(10):
+            with open(img_path, 'rb') as f:
+                files = {"image": (img_path.name, f, "image/jpeg")}
+                start = time.perf_counter()
+                resp = session.post(f"{BASE_URL}/api/analyze-plant", files=files, timeout=30)
+                elapsed = (time.perf_counter() - start) * 1000
+                response_times.append(elapsed)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    results.append({
+                        "disease": data.get("disease"),
+                        "confidence": data.get("confidence"),
+                        "offline": data.get("offline"),
+                    })
+                else:
+                    results.append({"error": resp.text[:100]})
+                print(f"  Request {i+1}: {elapsed:.1f}ms - status {resp.status_code}")
+    else:
+        if not login_data:
+            pass  # ConnectionError already printed fallback message
+        else:
+            print("Login failed (MongoDB not available).")
+            print("Falling back to Flask test client for response time measurement...")
+        response_times, results, auth_method = measure_via_test_client(img_path)
 
     print(f"\nResponse Time Statistics (ms):")
     print(f"  Mean:   {statistics.mean(response_times):.1f}")
@@ -80,7 +133,7 @@ def main():
 
     api_results = {
         "endpoint": "/api/analyze-plant",
-        "auth_method": "session cookie after login",
+        "auth_method": auth_method,
         "response_times_ms": {
             "mean": round(statistics.mean(response_times), 1),
             "median": round(statistics.median(response_times), 1),

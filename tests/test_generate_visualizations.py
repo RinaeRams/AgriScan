@@ -45,6 +45,8 @@ def plot_confusion_matrix(cm, class_names, output_path):
     print(f"Confusion matrix saved to: {output_path}")
 
 
+EPOCHS = 20
+
 def plot_training_curves(history, output_path):
     """Generate training/validation learning curves from history."""
     if history is None:
@@ -63,9 +65,14 @@ def plot_training_curves(history, output_path):
     axes[0].legend()
     axes[0].grid(True, alpha=0.3)
     early_epoch = history.get('early_stopped_epoch', 0)
-    if early_epoch:
+    total_epochs = history.get('total_epochs_run', len(history.get('loss', [])))
+    if early_epoch and total_epochs < EPOCHS:
         axes[0].axvline(x=early_epoch, color='green', linestyle='--', alpha=0.7,
                         label=f'Early Stop (epoch {early_epoch})')
+        axes[0].legend()
+    elif early_epoch:
+        axes[0].axvline(x=early_epoch, color='orange', linestyle='--', alpha=0.7,
+                        label=f'Final Epoch (epoch {early_epoch})')
         axes[0].legend()
 
     axes[1].plot(epochs, history['loss'], 'b-', label='Training Loss', linewidth=2)
@@ -75,9 +82,13 @@ def plot_training_curves(history, output_path):
     axes[1].set_title('Training & Validation Loss')
     axes[1].legend()
     axes[1].grid(True, alpha=0.3)
-    if early_epoch:
+    if early_epoch and total_epochs < EPOCHS:
         axes[1].axvline(x=early_epoch, color='green', linestyle='--', alpha=0.7,
                         label=f'Early Stop (epoch {early_epoch})')
+        axes[1].legend()
+    elif early_epoch:
+        axes[1].axvline(x=early_epoch, color='orange', linestyle='--', alpha=0.7,
+                        label=f'Final Epoch (epoch {early_epoch})')
         axes[1].legend()
 
     plt.suptitle('AgriScan Model Training Curves', fontsize=14, fontweight='bold')

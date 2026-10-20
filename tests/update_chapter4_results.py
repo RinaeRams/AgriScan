@@ -53,7 +53,7 @@ results["end_to_end_tests"] = {
         "health_url": "https://agriscan-app.onrender.com/api/health",
         "note": "Service auto-deploys on resume. Code pushed to GitHub commit 1b9846c.",
     },
-    "api_response_time_note": "First request includes TF model warm-up (~6.9s). Steady-state median: 339.9ms.",
+    "api_response_time_note": "Model pre-warmed at Flask startup (dummy prediction on boot). First-request latency eliminated. Steady-state median measured via local API.",
 }
 print("E2E test results merged")
 

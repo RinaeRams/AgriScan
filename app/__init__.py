@@ -57,6 +57,8 @@ def create_app():
     try:
         from app.services.agriculture_ml_service import AgricultureMLService
         ml_service = AgricultureMLService()
+        if ml_service.prewarm():
+            print("Model pre-warmed successfully")
         print("Agriculture ML Service initialized successfully!")
     except Exception as e:
         print(f"Could not initialize ML service: {e}")
@@ -196,6 +198,8 @@ def create_app():
 
     @app.route('/')
     def index():
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
         return render_template('index.html', user=session)
 
     @app.route('/login')

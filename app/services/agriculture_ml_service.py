@@ -235,6 +235,19 @@ class AgricultureMLService:
         if self.model is None and not self.using_tflite:
             print("No model found. Model will use fallback predictions until trained")
 
+    def prewarm(self) -> bool:
+        """Run a dummy prediction to trigger TF graph compilation so the first
+        real API request does not incur cold-start latency."""
+        if self.model is None and not self.using_tflite:
+            return False
+        try:
+            from PIL import Image
+            dummy = Image.new('RGB', (224, 224), color='green')
+            self.predict(dummy)
+            return True
+        except Exception:
+            return False
+
     def _predict_with_tflite(self, img_array: np.ndarray) -> np.ndarray:
         """Run inference using the TensorFlow Lite interpreter."""
         input_data = img_array.astype(self.tflite_input_details[0]['dtype'])

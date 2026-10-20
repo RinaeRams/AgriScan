@@ -11,3 +11,7 @@ services:
         value: 10000
       - key: PYTHON_VERSION
         value: "3.12.3"
+      - key: SECRET_KEY
+        value: agriscan-secret-key-2025
+      - key: MONGO_URI
+        value: mongodb+srv://Rinae-User:RamadiRR@cluster1.yzmbbvs.mongodb.net/agriscan?appName=Cluster1
